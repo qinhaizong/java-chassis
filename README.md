@@ -4,6 +4,17 @@ ServiceComb Java Chassis is a Software Development Kit (SDK) for rapid developme
 
 ## Quick Start
 
+前置条件：
+
+* 安装服务中心[service-center](https://github.com/ServiceComb/service-center) 并启动
+* microservice.yaml 配置
+```yaml
+cse:
+  service:
+    registry:
+      address: http://127.0.0.1:30100 # 服务中心默认30100端口
+```
+
 Provider service:
 ```java
 import io.servicecomb.*;
