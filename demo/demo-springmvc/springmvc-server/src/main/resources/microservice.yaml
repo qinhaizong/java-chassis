@@ -5,11 +5,11 @@ service_description:
 cse:
   service:
     registry:
-      address: http://127.0.0.1:9980
+      address: http://127.0.0.1:30100 # 参考https://github.com/ServiceComb/service-center服务中心地址
   rest:
-    address: 0.0.0.0:8080?sslEnabled=true
-  highway:
-    address: 0.0.0.0:7070?sslEnabled=true
+    address: 0.0.0.0:8080?sslEnabled=false
+#  highway:
+#    address: 0.0.0.0:7070?sslEnabled=false
   handler:
     chain:
       Provider:
