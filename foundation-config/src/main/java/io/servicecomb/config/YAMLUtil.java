@@ -16,12 +16,20 @@
 
 package io.servicecomb.config;
 
+import org.springframework.beans.factory.config.YamlProcessor;
+import org.springframework.core.io.InputStreamResource;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
+import org.yaml.snakeyaml.resolver.Resolver;
 
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * Created by   on 2017/1/5.
@@ -32,27 +40,43 @@ public final class YAMLUtil {
 
     @SuppressWarnings("unchecked")
     public static Map<String, Object> yaml2Properties(InputStream input) {
-        Map<String, Object> configurations = new LinkedHashMap<String, Object>();
-        Yaml yaml = new Yaml();
-        yaml.loadAll(input).forEach(data -> configurations.putAll(retrieveItems("", (Map<String, Object>) data)));
-        return configurations;
+        return new Processor(input).process();
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> retrieveItems(String prefix, Map<String, Object> propertieMap) {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
-        if (!prefix.isEmpty()) {
-            prefix += ".";
+    /**
+     * ref. org.springframework.boot.env.YamlPropertySourceLoader
+     * 参考spring-boot对yaml文件配置扁平化处理
+     */
+    private static class Processor extends YamlProcessor {
+
+        Processor(InputStream inputStream) {
+            setResources(new InputStreamResource(inputStream));
         }
 
-        for (Map.Entry<String, Object> entry : propertieMap.entrySet()) {
-            if (entry.getValue() instanceof Map) {
-                result.putAll(retrieveItems(prefix + entry.getKey(), (Map<String, Object>) entry.getValue()));
-            } else {
-                result.put(prefix + entry.getKey(), entry.getValue());
-            }
+        @Override
+        protected Yaml createYaml() {
+            return new Yaml(new StrictMapAppenderConstructor(), new Representer(), new DumperOptions(), new Resolver() {
+                @Override
+                public void addImplicitResolver(Tag tag, Pattern regexp, String first) {
+                    if (tag == Tag.TIMESTAMP) {
+                        return;
+                    }
+                    super.addImplicitResolver(tag, regexp, first);
+                }
+            });
         }
-        return result;
+
+        public Map<String, Object> process() {
+            final Map<String, Object> result = new LinkedHashMap<String, Object>();
+            process(new MatchCallback() {
+                @Override
+                public void process(Properties properties, Map<String, Object> map) {
+                    result.putAll(getFlattenedMap(map));
+                }
+            });
+            return result;
+        }
+
     }
 
     public static <T> T[] arrayConcat(T[] first, T[] second) {
